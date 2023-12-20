@@ -132,7 +132,7 @@ function updateMapMarkers() {
     // Clear existing markers
     console.log('updating markers');
     map.eachLayer(function (layer) {
-        if (layer instanceof L.circle) {
+        if (layer instanceof L.Circle) {
             map.removeLayer(layer);
         }
     });
@@ -140,33 +140,25 @@ function updateMapMarkers() {
       let markerBounds = L.latLngBounds();
     let rows = dt.rows({ filter: 'applied' });
     let maxRunners=0;
-    let minRunners=1000000;
     rows.every(function () {
         let data = this.data();
         let runners = parseFloat(data[5]); 
         if (runners > maxRunners) {
             maxRunners = runners;
         }
-        if (runners < minRunners) {
-            minRunners = runners;
-        }
     });
     // Iterate through the filtered DataTable rows
-    dt.rows({ filter: 'applied' }).every(function () {
+    rows.every(function () {
         let data = this.data();
         let lat = parseFloat(data[9]); 
         let lng = parseFloat(data[10]);
         if (!isNaN(lat) && !isNaN(lng)) {
-            // let marker = L.marker([lat, lng],{ icon:blueIcon}) .addTo(map)
-            //     .bindPopup('Name: ' + data[0] + '<br>State: ' + data[1]
-            //         + '<br>City: ' + data[2] + '<br>Next Race: ' + data[3]
-            //         + '<br>Runners: ' + data[5]);
-      radius = (parseFloat(data[5]) - minRunners) / (maxRunners - minRunners) * 100000 + 1000;
-      let marker = createCircle(lat, lng, "red", radius).addTo(map)
-                .bindPopup('Name: ' + data[0] + '<br>State: ' + data[1]
-                    + '<br>City: ' + data[2] + '<br>Next Race: ' + data[3]
-                    + '<br>Runners: ' + data[5]);
-            markers.push(marker);
+        radius = parseFloat(data[5])  / maxRunners * 100000 + 2000;
+        let marker = createCircle(lat, lng, "red", radius).addTo(map)
+                  .bindPopup('Name: ' + data[0] + '<br>State: ' + data[1]
+                      + '<br>City: ' + data[2] + '<br>Next Race: ' + data[3]
+                      + '<br>Runners: ' + data[5]);
+        markers.push(marker);
         markerBounds.extend(marker.getLatLng());
         }
     });
@@ -208,9 +200,11 @@ const minEl = document.querySelector('#min');
 const maxEl = document.querySelector('#max');
 minEl.addEventListener('input', function () {
     dt.draw();
+    updateMapMarkers()
 });
 maxEl.addEventListener('input', function () {
     dt.draw();
+    updateMapMarkers()
 }); 
 // Custom range filtering function
 DataTable.ext.search.push(function (settings, data, dataIndex) {
