@@ -93,45 +93,19 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
-const bluemarkerHtmlStyles = `
-  background-color: #40f;
-  width: 2rem;
-  height: 2rem;
-  display: block;
-  left: -1.5rem;
-  top: -1.5rem;
-  position: relative;
-  border-radius: 2rem 2rem 0;
-  transform: rotate(45deg);
-  border: 1px solid #FFFFFF`
+function createCircle(lat, lng, color, radius) {
+    return L.circle([lat, lng], {
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.3,
+        radius: radius,
+    });
+}
 
-const redmarkerHtmlStyles = `
-  background-color: red;
-  width: 2rem;
-  height: 2rem;
-  display: block;
-  left: -1.5rem;
-  top: -1.5rem;
-  position: relative;
-  border-radius: 2rem 2rem 0;
-  transform: rotate(45deg);
-  border: 1px solid #FFFFFF`
+function changeCircleColor(circle, newColor) {
+    circle.setStyle({ color: newColor, fillColor: newColor });
+}
 
-const blueIcon = L.divIcon({
-  className: "blue-pin",
-  iconAnchor: [0, 24],
-  labelAnchor: [-6, 0],
-  popupAnchor: [0, -36],
-  html: `<span style="${bluemarkerHtmlStyles}" />`
-});
-
-const redIcon = L.divIcon({
-  className: "red-pin",
-  iconAnchor: [0, 24],
-  labelAnchor: [-6, 0],
-  popupAnchor: [0, -36],
-  html: `<span style="${redmarkerHtmlStyles}" />`
-});
 function filter(col){
     var select = $('<select />')
         .appendTo( dt.column(col).header())
@@ -158,19 +132,37 @@ function updateMapMarkers() {
     // Clear existing markers
     console.log('updating markers');
     map.eachLayer(function (layer) {
-        if (layer instanceof L.Marker) {
+        if (layer instanceof L.circle) {
             map.removeLayer(layer);
         }
     });
 
       let markerBounds = L.latLngBounds();
+    let rows = dt.rows({ filter: 'applied' });
+    let maxRunners=0;
+    let minRunners=1000000;
+    rows.every(function () {
+        let data = this.data();
+        let runners = parseFloat(data[5]); 
+        if (runners > maxRunners) {
+            maxRunners = runners;
+        }
+        if (runners < minRunners) {
+            minRunners = runners;
+        }
+    });
     // Iterate through the filtered DataTable rows
     dt.rows({ filter: 'applied' }).every(function () {
         let data = this.data();
         let lat = parseFloat(data[9]); 
         let lng = parseFloat(data[10]);
         if (!isNaN(lat) && !isNaN(lng)) {
-            let marker = L.marker([lat, lng],{ icon:blueIcon}) .addTo(map)
+            // let marker = L.marker([lat, lng],{ icon:blueIcon}) .addTo(map)
+            //     .bindPopup('Name: ' + data[0] + '<br>State: ' + data[1]
+            //         + '<br>City: ' + data[2] + '<br>Next Race: ' + data[3]
+            //         + '<br>Runners: ' + data[5]);
+      radius = (parseFloat(data[5]) - minRunners) / (maxRunners - minRunners) * 100000 + 1000;
+      let marker = createCircle(lat, lng, "red", radius).addTo(map)
                 .bindPopup('Name: ' + data[0] + '<br>State: ' + data[1]
                     + '<br>City: ' + data[2] + '<br>Next Race: ' + data[3]
                     + '<br>Runners: ' + data[5]);
@@ -249,7 +241,7 @@ $('#races tbody').on('click', 'tr', function () {
         for (var i = 0; i < markers.length; i++) {
             var marker = markers[i];
             if (marker.getLatLng().lat === lat && marker.getLatLng().lng === lng) {
-             marker.setIcon(redIcon);
+             changeCircleColor(marker, 'blue'); // Change the color of the marker;
             }
         }
     }
